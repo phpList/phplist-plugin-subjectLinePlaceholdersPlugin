@@ -8,13 +8,13 @@
  * message being sent to that subscriber.
  *
  * The placeholder is the attribute name in uppercase and enclosed in square brackets. If
- * the replacement is to be in uppercase, there must be an '!' immediately before the
- * closing bracket.
+ * the replacement is to be in uppercase, there must be an '!' immediately after the
+ * opening bracket.
  *
  * Thus if subscribers have attributes named 'City' and 'State' and the state is to be
  * in upper case, a subject line might read:
  *
- *            A message for subscribers in [CITY], [STATE!]
+ *            A message for subscribers in [CITY], [!STATE]
  *
  * For a subscriber in Dallas, Texas, this would result in the subject line:
  *
@@ -23,6 +23,8 @@
  * Conditional placeholders are also supported, allowing an alternative replacement
  * when an attribute has no specified value. Thus [NAME?Subscriber] results in
  * 'Subscriber' being used in the subject line if the user's 'Name' attribute is empty.
+ * If upper case is specified by '!' after the opening bracket, the alternative value
+ * will be transformed to upper case, just as the attribute value would be.
  * 
  */
 
