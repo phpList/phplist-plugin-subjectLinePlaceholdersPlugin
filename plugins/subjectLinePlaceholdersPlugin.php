@@ -20,6 +20,10 @@
  *
  *			  A message for subscribers in Dallas, TEXAS
  *
+ * Conditional placeholders are also supported, allowing an alternative replacement
+ * when an attribute has no specified value. Thus [NAME?Subscriber] results in
+ * 'Subscriber' being used in the subject line if the user's 'Name' attribute is empty.
+ * 
  */
 
 /**
@@ -44,13 +48,23 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
     private $holders = array ();  // An array keyed on placeholders (without the brackets)
     							  // giving the replacement value and other info for each placeholder
     private $havesome = FALSE; 	// Flag that we have some placeholders in the subject line
-  private $fn = '/home/suncityd/public_html/phplist/admin/aquery.txt';
-  private $fnflag = FILE_APPEND;
-        	
+          	
 	public function __construct()
     {
 
         $this->coderoot = dirname(__FILE__) . '/subjectLinePlaceholdersPlugin/';
+        
+        // Get all the user-attribute names for comparison with placeholders
+   		$this->attnames = array();
+    	$att_table = $GLOBALS['tables']["attribute"];
+    	$res = Sql_Query(sprintf('SELECT Name FROM %s', $att_table));
+    	while ($row = Sql_Fetch_Row($res))
+    		$this->attnames[] = $row[0];
+    		
+    	// Need array of upper case attribute names to compare with upper case
+    	// placeholders.
+    	foreach ($this->attnames as $aname) 
+    		$this->capnames[] = strtoupper($aname);
            		
     	parent::__construct();
     }
@@ -62,7 +76,7 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
    * @return null
    * 
    * We find out here what placeholders we have in the subject line and 
-   * which will require upper case
+   * which will require upper case and/or alternative replacements
    *
    */
    public function campaignStarted($messagedata = array()) 
@@ -75,28 +89,19 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
   		
   		// Find the placeholders with regex. Some may end with '!' to indicate
   		// the replacement string is capitalized.
-  		if (!preg_match_all('/\[(!?)([^\[\]]*)\]/', $subject, $matches))
-  			$this->havesome = FALSE; // Flag no placeholders 
-  		
+  		if (!preg_match_all('/\[(!?)([^\[\]?]*)(\?[^\[\]]*)?\]/', $subject, $matches))
+  		{			
+  			$this->havesome = FALSE; // Flag no placeholders
+  			return;
+  		}	
   		$this->havesome = TRUE;
   		$raw = $matches[0];  // Placeholders with brackets
   		$caps = $matches[1]; // Exclamation marks or nothing
   		$hldr = $matches[2]; // Placeholders without brackets
+  		$alt = $matches[3]; // Alternate replacement, needs '?' removed
   		$len = count($raw); 		 
   		
-  		// Get all the user-attribute names for comparison with placeholders
-   		$this->attnames = array();
-    	$att_table = $GLOBALS['tables']["attribute"];
-    	$res = Sql_Query(sprintf('SELECT Name FROM %s', $att_table));
-    	while ($row = Sql_Fetch_Row($res))
-    		$this->attnames[] = $row[0];
-    		
-    	// Need array of upper case attribute names to compare with upper case
-    	// placeholders.
-    	foreach ($this->attnames as $aname) 
-    		$this->capnames[] = strtoupper($aname);
-    
-		// Now which placeholders really correspond to attributes?
+  			// Now which placeholders really correspond to attributes?
   		for ($i=0; $i < $len; $i++) 
   		{
   			// Does this supposed placeholder really correspond to a user attribute?
@@ -104,8 +109,9 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
   			if ($key === FALSE)
   				continue;
   				
-  			//Save the corresponding attribute name
+  			//Save the corresponding attribute name and alternate value
   			$this->holders[$raw[$i]]['attname'] = $this->attnames[$key];
+  			$this->holders[$raw[$i]]['alternate'] = ltrim($alt[$i], '?');
   			
   			// Check for '!', meaning the replacement should be put in upper case
  			if (isset($caps[$i]) && ($caps[$i] == '!'))
@@ -169,10 +175,13 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
   	// $mail contains the message to go out. Do the replacements.
   	foreach ($this->holders as $key => $val) 
   	{
+  		$replacement = $val['replace'];
+  		if (((!$replacement) || ($replacement =='NULL')) && ($val['alternate']))
+  			$replacement = $val['alternate'];
   		if ($val['capflag'])
-  			$mail->Subject = str_replace ($key, strtoupper($val['replace']), $mail->Subject);
+  			$mail->Subject = str_replace ($key, strtoupper($replacement), $mail->Subject);
   		else
-  			$mail->Subject = str_replace ($key, $val['replace'], $mail->Subject);
+  			$mail->Subject = str_replace ($key, $replacement, $mail->Subject);
     }
     return array(); //@@@
   }
