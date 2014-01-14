@@ -41,120 +41,63 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Subject Line Placeholders Plugin';
-    public $version = '1.0a1';
+    public $version = '1.0a2';
     public $enabled = true;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of placeholders for user attributes in the subject line of messages';
-    private $attnames = array ();  // All the names of user attributes
-    private $capnames = array ();  // All the user attributes in upper case
-    private $holders = array ();  // An array keyed on placeholders (without the brackets)
-    							  // giving the replacement value and other info for each placeholder
-    private $havesome = FALSE; 	// Flag that we have some placeholders in the subject line
-          	
+    
+    private $user_att_values = array();
+    
+    private function parseSubjectHolders($content,$atts = array()) 
+    {
+  		foreach ($atts as $key => $val) {
+    		if (stripos($content,'['.$key.']') !== false)
+        		$content = str_ireplace('['.$key.']',$val,$content);
+        	elseif (stripos($content,'[!'.$key.']') !== false)
+      	 		$content = str_ireplace('['.$key.']',strtoupper($val),$content);
+      	if (preg_match('/\[(\!)?'.$key.'(\?([^\]]+))?\]/i',$content,$regs)) {
+      		if ($regs[1] == '!') {
+      			$val = strtoupper($val);
+      			if ($regs[3])
+      				$regs[3] = strtoupper($regs[3]);
+      		}
+    	    if (!empty($val))
+        	  	$content = str_ireplace($regs[0],$val,$content);
+        	else
+          		$content = str_ireplace($regs[0],$regs[3],$content);
+    		}  
+    	}  
+  		return $content;
+	}
+
 	public function __construct()
     {
 
         $this->coderoot = dirname(__FILE__) . '/subjectLinePlaceholdersPlugin/';
         
-        // Get all the user-attribute names for comparison with placeholders
-   		$this->attnames = array();
-    	$att_table = $GLOBALS['tables']["attribute"];
-    	$res = Sql_Query(sprintf('SELECT Name FROM %s', $att_table));
-    	while ($row = Sql_Fetch_Row($res))
-    		$this->attnames[] = $row[0];
-    		
-    	// Need array of upper case attribute names to compare with upper case
-    	// placeholders.
-    	foreach ($this->attnames as $aname) 
-    		$this->capnames[] = strtoupper($aname);
-           		
     	parent::__construct();
     }
     
-/*
-   * campaignStarted
-   * called when sending of a campaign starts
-   * @param array messagedata - associative array with all data for campaign
-   * @return null
-   * 
-   * We find out here what placeholders we have in the subject line and 
-   * which will require upper case and/or alternative replacements
-   *
-   */
-   public function campaignStarted($messagedata = array()) 
-   {
-   
-   		// Collect the placeholders in the subject line; quit if none there.
-   		// It is only at the start of the campaign that we have access to the subject line.
-   		$this->holders = array();
-  		$subject = $messagedata['subject'];
-  		
-  		// Find the placeholders with regex. Some may end with '!' to indicate
-  		// the replacement string is capitalized.
-  		if (!preg_match_all('/\[(!?)([^\[\]?]*)(\?[^\[\]]*)?\]/', $subject, $matches))
-  		{			
-  			$this->havesome = FALSE; // Flag no placeholders
-  			return;
-  		}	
-  		$this->havesome = TRUE;
-  		$raw = $matches[0];  // Placeholders with brackets
-  		$caps = $matches[1]; // Exclamation marks or nothing
-  		$hldr = $matches[2]; // Placeholders without brackets
-  		$alt = $matches[3]; // Alternate replacement, needs '?' removed
-  		$len = count($raw); 		 
-  		
-  			// Now which placeholders really correspond to attributes?
-  		for ($i=0; $i < $len; $i++) 
-  		{
-  			// Does this supposed placeholder really correspond to a user attribute?
-  			$key = array_search($hldr[$i], $this->capnames); 
-  			if ($key === FALSE)
-  				continue;
-  				
-  			//Save the corresponding attribute name and alternate value
-  			$this->holders[$raw[$i]]['attname'] = $this->attnames[$key];
-  			$this->holders[$raw[$i]]['alternate'] = ltrim($alt[$i], '?');
-  			
-  			// Check for '!', meaning the replacement should be put in upper case
- 			if (isset($caps[$i]) && ($caps[$i] == '!'))
-  				$this->holders[$raw[$i]]['capflag'] = TRUE;
-  			else
-  				$this->holders[$raw[$i]]['capflag'] = FALSE;	
-  		}
-    		
-  		if (!count($this->holders))
-  			$this->havesome = FALSE; // Flag no placeholders
-   }	
-   
-    /* canSend -- The original purpose of this function is:
-   *
-   * can this message be sent to this subscriber
-   * if false is returned, the message will be identified as sent to the subscriber
-   * and never tried again
-   * 
-   * @param $messagedata array of all message data
-   * @param $userdata array of all user data
-   * returns bool: true, send it, false don't send it
-   *
-   * Instead of this we are using this function to find the placeholder replacement values
-   * for the particular user receiving the message
-   *
+
+/* setFinalDestinationEmail
+  * purpose: change the actual recipient based on user Attribute values:
+  * parameters: 
+  * messageid: message being sent 
+  * uservalues: array of "attributename" => "attributevalue" of all user attributes
+  * email: email that this message is current set to go out to
+  * returns: email that it should go out to
+  *
+  * This is where we can grab user attribute values for evaluating placeholders in 
+  * the subject line. Place holders in the body of the message are already evaluated
+  * by PHP list. 
+  *
+  * 
  */
-
-  function canSend ($messagedata, $subscriberdata) 
-  {  
-  	if (!$this->havesome)
-  		return true;
-  		
-  	// Get the replacement values for this subscriber	
-  	$id = $subscriberdata['id'];
-  	$ouratts = getUserAttributeValues('', $id);	
-  	foreach ($this->holders as $key => &$val)
-  		$val['replace'] = $ouratts[$val['attname']];
-  	
-    return true; //@@@
-  }
-
+  
+	public function setFinalDestinationEmail($messageid, $uservalues, $email) { 
+		$this->user_att_values = $uservalues;
+    	return $email;
+ 	 }
     
   /* messageHeaders  -- The original purpose of this function is:
    *
@@ -169,24 +112,13 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
    *
  */
   
-  public function messageHeaders($mail)
-  {
-  	if (!$this->havesome)
-  		return array();
-  		
-  	// $mail contains the message to go out. Do the replacements.
-  	foreach ($this->holders as $key => $val) 
+  	public function messageHeaders($mail)
   	{
-  		$replacement = $val['replace'];
-  		if (((!$replacement) || ($replacement =='NULL')) && ($val['alternate']))
-  			$replacement = $val['alternate'];
-  		if ($val['capflag'])
-  			$mail->Subject = str_replace ($key, strtoupper($replacement), $mail->Subject);
-  		else
-  			$mail->Subject = str_replace ($key, $replacement, $mail->Subject);
-    }
-    return array(); //@@@
-  }
+  	
+  		$mail->Subject = $this->parseSubjectHolders($mail->Subject, $this->user_att_values);
+  		
+  		return array(); //@@@
+  	}
 
 }
   
