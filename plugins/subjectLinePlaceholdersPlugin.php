@@ -2,6 +2,26 @@
 
 /**
  * subjectLinePlaceholders plugin version 1.0a1
+ *
+ * @category  phplist
+ * @package   subjectLinePlaceholders Plugin
+ * @author    Arnold V. Lesikar
+ * @copyright 2013, 2014 Arnold V. Lesikar
+ * @license   http://www.gnu.org/licenses/gpl.html GNU General Public License, Version 3
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  * 
  * This plugin allows placeholders to be used in the subject line of a message which
  * will be replaced by the value of the corresponding subscriber attribute in the 
@@ -69,6 +89,12 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
     	}  
   		return $content;
 	}
+	
+	// This plugin has no web pages. So make sure that nothing appears in the 
+	// dashboard menu
+	function adminmenu() {
+    	return array ();
+  	}
 
 	public function __construct()
     {
