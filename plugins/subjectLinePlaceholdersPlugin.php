@@ -1,7 +1,7 @@
 <?php
 
 /**
- * subjectLinePlaceholders plugin version 1.0a1
+ * subjectLinePlaceholders plugin version 1.0a3
  *
  * @category  phplist
  * @package   subjectLinePlaceholders Plugin
@@ -61,7 +61,7 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Subject Line Placeholders Plugin';
-    public $version = '1.0a2';
+    public $version = '1.0a3';
     public $enabled = true;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of placeholders for user attributes in the subject line of messages';
@@ -140,8 +140,8 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
   
   	public function messageHeaders($mail)
   	{
-  	
-  		$mail->Subject = $this->parseSubjectHolders($mail->Subject, $this->user_att_values);
+  		if (function_exists('parsePlaceHolders')) // Function is not defined when system messages are mailed
+  			$mail->Subject = $this->parseSubjectHolders($mail->Subject, $this->user_att_values);
   		
   		return array(); //@@@
   	}
