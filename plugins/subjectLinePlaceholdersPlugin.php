@@ -65,6 +65,7 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
     public $enabled = true;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of placeholders for user attributes in the subject line of messages';
+    public $documentationUrl = 'https://resources.phplist.com/plugins/subjectlineplaceholder';
     
     private $user_att_values = array();
     
@@ -140,8 +141,12 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
   
   	public function messageHeaders($mail)
   	{
-  		if (function_exists('parsePlaceHolders')) // Function is not defined when system messages are mailed
+  		if (function_exists('parsePlaceHolders')) {// Function is not defined when system messages are mailed
   			$mail->Subject = $this->parseSubjectHolders($mail->Subject, $this->user_att_values);
+            ## run it through the central system placeholder parsing
+            ## that activates the %% fallback separator
+            $mail->Subject = parsePlaceHolders($mail->Subject,$this->user_att_values);
+        }
   		
   		return array(); //@@@
   	}
