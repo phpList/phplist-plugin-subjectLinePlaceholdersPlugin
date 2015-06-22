@@ -1,7 +1,7 @@
 <?php
 
 /**
- * subjectLinePlaceholders plugin version 1.0a3
+ * subjectLinePlaceholders plugin version 1.0a4
  *
  * @category  phplist
  * @package   subjectLinePlaceholders Plugin
@@ -61,7 +61,7 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Subject Line Placeholders Plugin';
-    public $version = '1.0a3';
+    public $version = '1.0a4';
     public $enabled = true;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of placeholders for user attributes in the subject line of messages';
