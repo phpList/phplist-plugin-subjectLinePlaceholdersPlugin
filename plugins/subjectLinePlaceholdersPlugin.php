@@ -65,7 +65,7 @@ class subjectLinePlaceholdersPlugin extends phplistPlugin
     public $enabled = true;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of placeholders for user attributes in the subject line of messages';
-    public $documentationUrl = 'https://resources.phplist.com/plugins/subjectlineplaceholder';
+    public $documentationUrl = 'https://resources.phplist.com/plugin/subjectlineplaceholder';
     
     private $user_att_values = array();
     
